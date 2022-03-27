@@ -15,7 +15,7 @@ builder.Services.AddControllers()
     {
         options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";  //修改全局的时间格式
     });
-
+builder.Services.AddMemoryCache();
 #region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
