@@ -1,6 +1,10 @@
+using Common;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Reflection;
-
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,16 +16,44 @@ builder.Services.AddControllers()
         options.SerializerSettings.DateFormatString = "yyyy-MM-dd HH:mm:ss";  //修改全局的时间格式
     });
 
+#region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(option =>
+builder.Services.AddSwaggerGen(options =>
 {
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+    {
+        Description = "在下框中输入请求头中需要添加Jwt授权Token：Bearer Token",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+
     //注释
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     //是否显示控制器注释
-    option.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename), true);
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename), true);
+
+
 }
     );
+#endregion
 
 //数据验证FluentValidation的依赖注入
 builder.Services.AddFluentValidation(opt =>
@@ -41,6 +73,58 @@ builder.Services.AddCors(c =>
 }
     );
 
+#region Jwt
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var tokenModel = builder.Configuration.GetSection("Jwt").Get<TokenModelJwt>();
+        var secretByte = Encoding.UTF8.GetBytes(tokenModel.Secret);
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidateIssuer = true,
+            ValidIssuer = tokenModel.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = tokenModel.Audience,
+
+            ValidateLifetime = true,
+
+            IssuerSigningKey = new SymmetricSecurityKey(secretByte)
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                //此处代码为终止.Net Core默认的返回类型和数据结果，这个很重要哦，必须
+                //context.HandleResponse();
+
+                //自定义自己想要返回的数据结果，我这里要返回的是Json对象，通过引用Newtonsoft.Json库进行转换
+
+                //自定义返回的数据类型
+                //context.Response.ContentType = "text/plain";
+                ////自定义返回状态码，默认为401 我这里改成 200
+                ////context.Response.StatusCode = StatusCodes.Status200OK;
+                //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                ////输出Json数据结果
+                //context.Response.WriteAsync("expired");
+                return Task.FromResult(0);
+            },
+            //403
+            OnForbidden = context =>
+            {
+                //context.Response.ContentType = "text/plain";
+                ////自定义返回状态码，默认为401 我这里改成 200
+                ////context.Response.StatusCode = StatusCodes.Status200OK;
+                //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                ////输出Json数据结果
+                //context.Response.WriteAsync("expired");
+                return Task.FromResult(0);
+            }
+
+        };
+    });
+#endregion
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -51,6 +135,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("Cors");
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
