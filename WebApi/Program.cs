@@ -1,4 +1,6 @@
+using FluentValidation.AspNetCore;
 using System.Reflection;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +18,26 @@ builder.Services.AddSwaggerGen(option =>
 {
     //注释
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    //第二个参数为是否显示控制器注释，我们选择true
+    //是否显示控制器注释
     option.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename), true);
+}
+    );
+
+//数据验证FluentValidation的依赖注入
+builder.Services.AddFluentValidation(opt =>
+{
+    opt.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+});
+
+//跨域
+builder.Services.AddCors(c =>
+{
+    c.AddPolicy("Cors", policy =>
+     {
+         policy.AllowAnyOrigin()
+         .AllowAnyHeader()
+         .AllowAnyMethod();
+     });
 }
     );
 
@@ -29,6 +49,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors("Cors");
 
 app.UseAuthorization();
 
