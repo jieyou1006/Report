@@ -83,12 +83,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             ValidateIssuer = true,
             ValidIssuer = tokenModel.Issuer,
-
             ValidateAudience = true,
             ValidAudience = tokenModel.Audience,
-
-            ValidateLifetime = true,
-
+            ValidateLifetime = true,  //是否验证失效时间
+            //ValidateIssuerSigningKey = true,  //是否验证SecurityKey
             IssuerSigningKey = new SymmetricSecurityKey(secretByte)
         };
         options.Events = new JwtBearerEvents
@@ -136,9 +134,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("Cors");
 
+#region 鉴权授权
 app.UseAuthentication();
-
 app.UseAuthorization();
+#endregion
 
 app.MapControllers();
 
