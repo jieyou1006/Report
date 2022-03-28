@@ -76,7 +76,6 @@ namespace Common
     /// </summary>
     public class TokenModelJwt
     {
-
         public int UserId { get; set; }
         public string UserName { get; set; }
         public string Issuer { get; set; }

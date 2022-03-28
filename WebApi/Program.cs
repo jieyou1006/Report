@@ -86,6 +86,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = tokenModel.Audience,
             ValidateLifetime = true,  //是否验证失效时间
+            ClockSkew = TimeSpan.FromMinutes(60),  //设置失效时间
             //ValidateIssuerSigningKey = true,  //是否验证SecurityKey
             IssuerSigningKey = new SymmetricSecurityKey(secretByte)
         };
