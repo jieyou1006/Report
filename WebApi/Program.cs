@@ -1,6 +1,7 @@
 using Common;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -9,6 +10,7 @@ using WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
 var MyCors = builder.Configuration["App:CorsOrigins"].Split(",", StringSplitOptions.RemoveEmptyEntries).ToArray();
+var basePath = Environment.CurrentDirectory;
 // Add services to the container.
 
 builder.Services.AddControllers()
@@ -144,6 +146,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 #endregion
 
 var app = builder.Build();
+
+#region 启用静态资源访问
+//创建目录
+var path = Path.Combine(basePath, "Files/");  //"D:\\git\\Report\\WebApi"
+FileHelper.CreateDir(path);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(path),
+    RequestPath = "/Files"
+});
+#endregion
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
