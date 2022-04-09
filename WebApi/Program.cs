@@ -5,9 +5,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+using WebApi;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var MyCors = builder.Configuration["App:CorsOrigins"].Split(",", StringSplitOptions.RemoveEmptyEntries).ToArray();
 // Add services to the container.
 
 builder.Services.AddControllers()
@@ -62,16 +63,34 @@ builder.Services.AddFluentValidation(opt =>
 });
 
 //跨域
-builder.Services.AddCors(c =>
+builder.Services.AddCors(options =>
 {
-    c.AddPolicy("Cors", policy =>
-     {
-         policy.AllowAnyOrigin()
-         .AllowAnyHeader()
-         .AllowAnyMethod();
-     });
-}
-    );
+    options.AddPolicy(name: "Cors", 
+        builder =>
+        {
+            builder.WithOrigins(MyCors)
+            .SetIsOriginAllowedToAllowWildcardSubdomains()
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+
+            //允许所有域
+            //builder.AllowAnyMethod()
+            //.SetIsOriginAllowed(_ => true)
+            //.AllowAnyHeader()
+            //.AllowCredentials();
+        });
+});
+//builder.Services.AddCors(c =>
+//{
+//    c.AddPolicy("Cors", policy =>
+//     {
+//         policy.AllowAnyOrigin()
+//         .AllowAnyHeader()
+//         .AllowAnyMethod();
+//     });
+//}
+//    );
 
 #region Jwt
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -133,8 +152,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("Cors");
-
+app.UseCors("Cors");  //启用跨域
+app.UseMiddleware<CorsMiddleware>();  //添加跨域中间件处理跨域问题
 #region 鉴权授权
 app.UseAuthentication();
 app.UseAuthorization();
